@@ -127,7 +127,7 @@ async function processAudio() {
       try {
         // Call Rust backend to transcribe
         statusEl.textContent = 'Transcribing...';
-        const result = await invoke<string>('transcribe_audio', { audioData: base64Audio });
+        await invoke<string>('transcribe_audio', { audioData: base64Audio });
         
         statusEl.textContent = 'Copied to clipboard!';
         
