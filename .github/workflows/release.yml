@@ -106,7 +106,7 @@ jobs:
           if-no-files-found: error
 
       - name: Create release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: ${{ matrix.platform.artifacts }}
@@ -135,7 +135,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Update release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body: |
             ## voxtype v${{ steps.extract.outputs.version }}
