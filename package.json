@@ -6,9 +6,15 @@
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
-    "clean": "rimraf src-tauri/target",
+    "build:debug": "npm run vite:build && cd src-tauri && cargo build",
+    "build:release": "npm run vite:build && cd src-tauri && cargo build --release",
+    "build:deb": "tauri build --bundles deb",
+    "build:appimage": "tauri build --bundles appimage",
+    "build:linux": "tauri build --bundles deb,appimage",
+    "clean": "rimraf src-tauri/target dist",
     "vite:dev": "vite",
-    "vite:build": "vite build"
+    "vite:build": "vite build",
+    "test:local": "npm run build:release && ./src-tauri/target/release/voxtype"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",

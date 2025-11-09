@@ -21,8 +21,8 @@ jobs:
           - name: Linux
             os: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
+            bundle: deb
             artifacts: |
-              src-tauri/target/release/bundle/appimage/*.AppImage
               src-tauri/target/release/bundle/deb/*.deb
 
           - name: Windows
@@ -86,7 +86,12 @@ jobs:
         run: npm ci
 
       - name: Build release
-        run: npm run build
+        run: |
+          if [ "${{ matrix.platform.os }}" = "ubuntu-22.04" ]; then
+            npm run build:${{ matrix.platform.bundle }}
+          else
+            npm run build
+          fi
         env:
           TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
           TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
