@@ -16,7 +16,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [ubuntu-22.04, windows-latest, macos-latest]
+        platform: [ubuntu-22.04, macos-latest]
+        # windows-latest disabled - icon.ico needs proper format
 
     steps:
       - name: Checkout repository
