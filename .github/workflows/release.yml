@@ -1,0 +1,173 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Release - ${{ matrix.platform.name }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: Linux
+            os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            artifacts: |
+              src-tauri/target/release/bundle/appimage/*.AppImage
+              src-tauri/target/release/bundle/deb/*.deb
+
+          - name: Windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifacts: |
+              src-tauri/target/release/bundle/msi/*.msi
+
+          - name: macOS (Intel)
+            os: macos-latest
+            target: x86_64-apple-darwin
+            artifacts: |
+              src-tauri/target/release/bundle/dmg/*.dmg
+              src-tauri/target/release/bundle/macos/*.app
+
+          - name: macOS (Apple Silicon)
+            os: macos-latest
+            target: aarch64-apple-darwin
+            artifacts: |
+              src-tauri/target/release/bundle/dmg/*.dmg
+              src-tauri/target/release/bundle/macos/*.app
+
+    runs-on: ${{ matrix.platform.os }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform.target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: Install dependencies (Ubuntu only)
+        if: matrix.platform.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build release
+        run: npm run build
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: voxtype-${{ matrix.platform.name }}
+          path: ${{ matrix.platform.artifacts }}
+          if-no-files-found: error
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ matrix.platform.artifacts }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Publish Release Notes
+    needs: release
+    runs-on: ubuntu-22.04
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract release notes
+        id: extract
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Update release
+        uses: softprops/action-gh-release@v1
+        with:
+          body: |
+            ## voxtype v${{ steps.extract.outputs.version }}
+
+            **Cross-platform voice dictation powered by OpenAI**
+
+            ### 📦 Downloads
+
+            - **Linux**: `.AppImage` (portable) or `.deb` (Debian/Ubuntu)
+            - **Windows**: `.msi` installer
+            - **macOS**: `.dmg` installer
+
+            ### 🚀 Quick Start
+
+            1. Download the appropriate installer for your platform
+            2. Install the app
+            3. Add your OpenAI API key to `~/.config/voxtype/config.json`
+            4. Press `Ctrl+Shift+Space` to activate
+            5. Speak and get perfectly formatted text!
+
+            ### 📋 What's Included
+
+            - ✨ AI-powered transcription and text formatting
+            - 🎤 Real-time audio level visualization
+            - 📋 Automatic clipboard integration
+            - ⌨️  Configurable global hotkeys
+            - 🌊 Beautiful liquid glass UI
+
+            ### 📚 Documentation
+
+            See the [README](https://github.com/Gurio/voxtype#readme) for full documentation.
+
+            ### 🐛 Known Issues
+
+            - Global hotkey may conflict with system shortcuts (see HOTKEY_TROUBLESHOOTING.md)
+            - First launch requires microphone permissions
+
+            ---
+            **Full Changelog**: https://github.com/Gurio/voxtype/compare/...v${{ steps.extract.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -1,5 +1,8 @@
 # voxtype
 
+[![CI](https://github.com/Gurio/voxtype/actions/workflows/ci.yml/badge.svg)](https://github.com/Gurio/voxtype/actions/workflows/ci.yml)
+[![Release](https://github.com/Gurio/voxtype/actions/workflows/release.yml/badge.svg)](https://github.com/Gurio/voxtype/actions/workflows/release.yml)
+
 **Speech to text under a cursor (keyless text typing)**
 
 A cross-platform voice dictation tool built with Tauri. Press a global hotkey, speak, and get perfectly formatted text copied to your clipboard.
