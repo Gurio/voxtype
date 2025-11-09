@@ -44,7 +44,7 @@ jobs:
           echo "✅ package-lock.json is up to date"
 
       - name: PR size check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const additions = context.payload.pull_request.additions || 0;
