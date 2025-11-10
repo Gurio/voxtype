@@ -9,13 +9,14 @@ A cross-platform voice dictation tool built with Tauri. Press a global hotkey, s
 
 ## ✨ Features
 
-- 🎯 **Global Hotkey** - Activate from anywhere with `Alt+Space` (configurable)
+- 🎯 **Intelligent Hotkey System** - Auto-finds a working hotkey (F12, F11, Pause, etc.) - zero configuration!
 - 🎤 **Smart Recording** - Visual level meter, auto-stop on silence
 - 🧠 **AI-Powered** - OpenAI transcription + intelligent post-processing
 - 📋 **Clipboard Integration** - Transcribed text automatically copied
 - 🌊 **Beautiful UI** - Liquid glass overlay effect
 - 🔒 **Privacy-First** - Runs locally, you control your API keys
-- 🚀 **Cross-Platform** - Linux, Windows, macOS
+- 🚀 **Cross-Platform** - Linux-first, Windows & macOS supported
+- ⚡ **Just Works** - Automatic hotkey fallback, no JSON editing needed
 
 ## 🏗️ Tech Stack
 

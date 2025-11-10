@@ -47,6 +47,7 @@ async fn transcribe_audio(
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_single_instance::init(|_app, _args, _cwd| {}))
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_shell::init())
@@ -64,34 +65,77 @@ fn main() {
             // Get overlay window
             let overlay = app.get_webview_window("overlay").unwrap();
 
-            // Register global shortcut
-            let shortcut_str = &config.shortcut;
-            let shortcut = shortcut_str
-                .parse::<Shortcut>()
-                .unwrap_or_else(|_| "Ctrl+Shift+Space".parse().unwrap());
+            // Try to register global shortcut with intelligent fallback
+            let fallback_hotkeys = vec![
+                config.shortcut.as_str(), // User's preference first
+                "F12",
+                "F11", 
+                "F10",
+                "F9",
+                "Pause",
+                "ScrollLock",
+                "Insert",
+                "F8",
+                "F7",
+            ];
 
-            let overlay_clone = overlay.clone();
-            if let Err(e) =
-                app.global_shortcut()
-                    .on_shortcut(shortcut, move |_app, _shortcut, _event| {
-                        overlay_clone.emit("toggle-record", ()).ok();
-                    })
-            {
-                eprintln!(
-                    "⚠️  Warning: Failed to set up hotkey handler '{}': {}",
-                    shortcut_str, e
-                );
-                eprintln!("   The app will continue without global hotkey support.");
-            } else if let Err(e) = app.global_shortcut().register(shortcut) {
-                eprintln!(
-                    "⚠️  Warning: Failed to register hotkey '{}': {}",
-                    shortcut_str, e
-                );
-                eprintln!("   The app will still work, but the global hotkey won't be available.");
-                eprintln!("   You may need to restart your system to clear stuck hotkeys.");
-                eprintln!("   Alternative: Change shortcut in ~/.config/voxtype/config.json");
-            } else {
-                println!("✅ voxtype started. Press {} to activate.", shortcut_str);
+            let mut registered_hotkey: Option<String> = None;
+
+            for hotkey_str in fallback_hotkeys {
+                if let Ok(shortcut) = hotkey_str.parse::<Shortcut>() {
+                    let overlay_clone = overlay.clone();
+                    
+                    // Try to set up handler
+                    if app.global_shortcut()
+                        .on_shortcut(shortcut.clone(), move |_app, _shortcut, _event| {
+                            overlay_clone.emit("toggle-record", ()).ok();
+                        })
+                        .is_err()
+                    {
+                        continue; // Try next hotkey
+                    }
+                    
+                    // Try to register
+                    if app.global_shortcut().register(shortcut).is_ok() {
+                        registered_hotkey = Some(hotkey_str.to_string());
+                        
+                        // If we used a fallback (not user's preference), update config
+                        if hotkey_str != config.shortcut {
+                            println!("⚠️  Configured hotkey '{}' was taken.", config.shortcut);
+                            println!("✅ Auto-selected working hotkey: {}", hotkey_str);
+                            
+                            let mut new_config = config.clone();
+                            new_config.shortcut = hotkey_str.to_string();
+                            if let Err(e) = new_config.save() {
+                                eprintln!("   Warning: Could not save new hotkey to config: {}", e);
+                            } else {
+                                println!("   Updated config file with new hotkey.");
+                            }
+                        } else {
+                            println!("✅ voxtype started. Press {} to activate.", hotkey_str);
+                        }
+                        
+                        break;
+                    }
+                }
+            }
+
+            if registered_hotkey.is_none() {
+                eprintln!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                eprintln!("⚠️  Could not register ANY hotkey!");
+                eprintln!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                eprintln!("");
+                eprintln!("This usually means:");
+                eprintln!("  1. Another voxtype instance is running");
+                eprintln!("  2. Your system has many hotkeys registered");
+                eprintln!("  3. A system restart is needed to clear stuck keys");
+                eprintln!("");
+                eprintln!("Solutions:");
+                eprintln!("  • Kill other instances: pkill -9 voxtype");
+                eprintln!("  • Restart your computer: sudo reboot");
+                eprintln!("");
+                eprintln!("The app will continue but WITHOUT hotkey support.");
+                eprintln!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
             }
 
             Ok(())
