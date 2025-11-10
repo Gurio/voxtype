@@ -15,9 +15,9 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             openai_api_key: std::env::var("OPENAI_API_KEY").unwrap_or_default(),
-            shortcut: "Ctrl+Shift+Space".to_string(),
+            shortcut: "Alt+,".to_string(),
             transcribe_model: "gpt-4o-mini-transcribe".to_string(),
-            post_model: "gpt-4.1-mini".to_string(),
+            post_model: "gpt-5-mini".to_string(),
         }
     }
 }
